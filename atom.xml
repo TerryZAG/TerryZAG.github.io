@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://TerryZAG.github.io</id>
+    <title>TerryZAG的博客</title>
+    <updated>2025-01-13T09:07:40.636Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://TerryZAG.github.io"/>
+    <link rel="self" href="https://TerryZAG.github.io/atom.xml"/>
+    <subtitle>道在日新</subtitle>
+    <logo>https://TerryZAG.github.io/images/avatar.png</logo>
+    <icon>https://TerryZAG.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2025, TerryZAG的博客</rights>
+    <entry>
+        <title type="html"><![CDATA[Geoservr集群部署]]></title>
+        <id>https://TerryZAG.github.io/post/geoserver-cluster-001/</id>
+        <link href="https://TerryZAG.github.io/post/geoserver-cluster-001/">
+        </link>
+        <updated>2025-01-09T08:02:47.000Z</updated>
+        <summary type="html"><![CDATA[<p>基于JMS和共享数据目录的Geoserver 集群部署</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>基于JMS和共享数据目录的Geoserver 集群部署</p>
+<!-- more -->
+<p>参考<a href="https://www.osgeo.cn/geoserver-user-manual/community/jms-cluster/index.html">官网教程</a>，Geoserver的集群通过JMS、Spring和MOM（面向消息的中间件）实现，其中MOM则使用ActiveMQ。实现集群一种最简单的方式就是采用一组嵌入式MOM代理的方法（默认配置），也就是在集群中的每个Geoserver节点里都安装ActiveMQ。在这个默认配置中，MOM实际上嵌入并运行在每个Geoserver服务器中，使用多播查找其对等端，从而允许在不需要单独部署MOM的情况下进行集群安装，这些MOM节点自动组成拓扑结构，并能够自由的加入和退出。</p>
+<!-- more -->
+<h3 id="一-单geoserver部署">一、单Geoserver部署</h3>
+<h4 id="1在geoserver官网中选择二进制包下载">1.在<a href="https://geoserver.org/">Geoserver官网</a>中选择二进制包下载</h4>
+<p><img src="https://TerryZAG.github.io/post-images/1736411496944.jpg" alt="" loading="lazy"><br>
+<img src="https://TerryZAG.github.io/post-images/1736411512329.jpg" alt="" loading="lazy"></p>
+<h4 id="2解压后在bin文件夹中的startupsh和startupbat中修改java_home将其中的jdk路径替换为自己的安装位置本文实例中geoserver的225版本对应java11">2.解压后在bin文件夹中的startup.sh和startup.bat中修改JAVA_HOME（将其中的jdk路径替换为自己的安装位置），本文实例中Geoserver的2.25版本对应java11</h4>
+<ul>
+<li>linux系统，在startup.sh文件开头添加<br>
+export JAVA_HOME=/home/java_env/jdk-11.0.24-full</li>
+<li>windows系统，在startup.bat文件开头添加<br>
+set JAVA_HOME=D:\Softwares\java_env\jdk-11.0.24-full</li>
+</ul>
+<h4 id="3在项目根目录的startini文件中修改启动配置比如修改http端口jettyhttpport8080">3.在项目根目录的start.ini文件中修改启动配置，比如修改http端口jetty.http.port=8080</h4>
+<h4 id="4执行bin文件夹中的startup文件">4.执行bin文件夹中的startup文件</h4>
+<h3 id="二-jms集群插件下载">二、JMS集群插件下载</h3>
+<h4 id="1下载activemq-broker-plugin和jms-cluster-plugin">1.下载activeMQ-broker-plugin和jms-cluster-plugin</h4>
+<ul>
+<li>选择Nightly版本<br>
+<img src="https://TerryZAG.github.io/post-images/1736413308979.jpg" alt="" loading="lazy"></li>
+<li>选择Community Modules<br>
+<img src="https://TerryZAG.github.io/post-images/1736413344141.jpg" alt="" loading="lazy"></li>
+<li>点击下载对应插件，包括ActiveMQ和jms<br>
+<img src="https://TerryZAG.github.io/post-images/1736414297898.jpg" alt="" loading="lazy"></li>
+</ul>
+<h4 id="2安装jms插件">2.安装JMS插件</h4>
+<ul>
+<li>解压全部的zip包，将解压后的所有jar包复制到Geoserver程序中的<strong>webapps/geoserver/WEB-INF/lib</strong>目录下</li>
+<li>启动Geoserver，看到集群配置功能，JMS插件安装成功，并且可以在数据目录<strong>data_dir/cluster</strong>中看到自动生成的cluster配置文件<br>
+<img src="https://TerryZAG.github.io/post-images/1736414465258.jpg" alt="" loading="lazy"></li>
+</ul>
+<h3 id="三-设置数据目录-缓存目录和cluster配置目录">三、设置数据目录、缓存目录和cluster配置目录</h3>
+<p>在Geoserver项目根目录的/start.ini中设置数据目录、缓存目录、和cluster配置目录添加启动参数，并手动建立数据目录文件夹，比如<br>
+-DGEOSERVER_DATA_DIR=\Geoserver\cluster_geoserver_data_dir\data<br>
+-DGEOWEBCACHE_CACHE_DIR=\Geoserver\cluster_geoserver_data_dir\geowebcache<br>
+-DCLUSTER_CONFIG_DIR=\Geoserver\cluster_geoserver_data_dir\clusterConfig\1</p>
+<ul>
+<li>其中<strong>data</strong>表示数据目录</li>
+<li>其中<strong>geowebcache</strong>表示缓存目录</li>
+<li>其中的<strong>clusterConfig\1</strong>表示Geoserver节点1的集群配置文件目录，其他节点可以设置为<strong>clusterConfig\2</strong>等</li>
+<li>目录分割在windows使用‘\’，linux使用‘/’</li>
+</ul>
+<h3 id="四-设置基于嵌入式代理的集群">四、设置基于嵌入式代理的集群</h3>
+<h4 id="1所有geoserver实例在一个组内并确保能够多播发现">1.所有Geoserver实例在一个组内，并确保能够多播发现</h4>
+<ul>
+<li>如果我们要在同一台机器中部署多个Geoserver节点，则需要在每个项目根目录的start.ini文件中修改启动的端口配置，比如分别设置jetty.http.port=8080，jetty.http.port=8082和jetty.http.port=8083</li>
+<li>如果在虚拟机或者不同机器上部署，则局域网中要在相同网段，公网中要在同个多播组中</li>
+</ul>
+<h4 id="2设置数据目录假设同一台机器">2.设置数据目录（假设同一台机器）</h4>
+<p>将多个Geoserver实例设置相同的共享的数据目录和缓存目录，设置不同的cluster配置目录，比如分别设置</p>
+<ul>
+<li>-DCLUSTER_CONFIG_DIR=\Geoserver\cluster_geoserver_data_dir\clusterConfig\1<br>
+和</li>
+<li>-DCLUSTER_CONFIG_DIR=\Geoserver\cluster_geoserver_data_dir\clusterConfig\2</li>
+</ul>
+<h4 id="3geoserver集群设置">3.Geoserver集群设置</h4>
+<p>分别启动每个实例，并进行集群设置，其中 <em>Name of this instance's group</em> 和 <em>The name of the topic (Default 'geoserver')</em> 所有实例相同（可默认）， <em>Name of this instance</em> 所有实例不同（自动生成），并按照下图设置属性：<br>
+<img src="https://TerryZAG.github.io/post-images/1736415462143.jpg" alt="" loading="lazy"></p>
+<h4 id="4下载brokerxml">4.下载broker.xml</h4>
+<p>下载<a href="https://github.com/geoserver/geoserver/blob/main/src/community/jms-cluster/jms-geoserver/src/main/resources/broker.xml">broker.xml文件</a>，停止所有实例，并复制broker.xml到每一个实例所生成的cluster配置目录中，结果如下<br>
+<img src="https://TerryZAG.github.io/post-images/1736415789451.jpg" alt="" loading="lazy"></p>
+<h4 id="5启动每个实例">5.启动每个实例</h4>
+<p>执行<em>bin</em>中的startup文件启动节点</p>
+<h3 id="五-目录共享">五、目录共享</h3>
+<p>在不同机器中部署多个节点实例，不同实例设置相同的共享的数据目录和缓存目录，并且不共享cluster配置目录，并且可以采用分布式文件系统，比如nfs。</p>
+<ul>
+<li>在提供文件服务的机器上安装nfs服务，比如在Ubuntu中执行：<br>
+<code>apt install -y nfs-kernel-server</code></li>
+<li>创建文件夹，编辑nfs服务的配置文件/etc/exports，设置创建的文件夹为共享目录<br>
+<code>mkdir /nfs</code><br>
+<code>echo &quot;/nfs *(rw,sync,no_root_squash)&quot; &gt; /etc/exports</code></li>
+<li>重启服务并设置为开机启动<br>
+<code>systemctl restart nfs-kernel-server</code><br>
+<code>systemctl enable nfs-kernel-server</code></li>
+<li>在每个Geoserver实例服务器中安装nfs客户端<br>
+<code>apt install -y nfs-common</code></li>
+<li>创建挂在点进行挂载，ip填写nfs服务ip<br>
+<code>mkdir -p /Geoserver</code><br>
+<code>mount -o rw,nosuid,fg,hard,intr  192.168.137.2:/nfs /Geoserver</code></li>
+<li>设置开机自动挂载<br>
+在/etc/fstab中添加一行<br>
+<code>echo &quot;192.168.137.2:/nfs /Geoserver&quot; &gt; /etc/exports</code></li>
+</ul>
+<h3 id="六-nginx负载均衡">六、nginx负载均衡</h3>
+<p>在访问Geoserver的wms等地图服务时，可以通过nginx对不同的节点进行负载均衡，不同节点采用共享的数据目录和配置目录，可以通过不同节点获取到相同的服务。</p>
+<ul>
+<li>按照自己配置的服务，在nginx.conf中添加配置，比如</li>
+</ul>
+<pre><code>upstream geoservernginx {
+    server localhost:8080 max_fails=3 fail_timeout=30s;	
+    server localhost:8081 max_fails=3 fail_timeout=30s;
+    server localhost:8082 max_fails=3 fail_timeout=30s;
+}
+</code></pre>
+<p>并且在对应的server下配置location</p>
+<pre><code>location ^~ /geoserver/ {
+    proxy_pass http://geoservernginx/geoserver/;
+}
+</code></pre>
+<p>最后通过nginx的ip和端口访问Geoserver服务。</p>
+]]></content>
+    </entry>
+</feed>
